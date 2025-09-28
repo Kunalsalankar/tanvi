@@ -92,6 +92,38 @@ def find_best_toe(landmarks):
             return lm
     return None
 
+def auto_calibrate(frame):
+    """
+    Detects an A4 paper in the frame and calculates pixels_per_cm.
+    Returns pixels_per_cm or None if not found.
+    """
+    A4_WIDTH_CM = 21.5  # width of A4 in cm
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (5,5), 0)
+    edged = cv2.Canny(blur, 50, 150)
+    contours, _ = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    for cnt in contours:
+        approx = cv2.approxPolyDP(cnt, 0.02*cv2.arcLength(cnt, True), True)
+        if len(approx) == 4 and cv2.contourArea(approx) > 10000:
+            # Found a quadrilateral, assume it's the A4
+            pts = approx.reshape(4,2)
+            # Sort points to get top-left and top-right
+            pts = pts[np.argsort(pts[:,0]),:]  # sort by x
+            left = pts[:2]
+            right = pts[2:]
+            tl = left[np.argmin(left[:,1])]
+            bl = left[np.argmax(left[:,1])]
+            tr = right[np.argmin(right[:,1])]
+            br = right[np.argmax(right[:,1])]
+            # Calculate width in pixels (top edge)
+            width_px = np.linalg.norm(tr - tl)
+            pixels_per_cm = width_px / A4_WIDTH_CM
+            # Draw for feedback
+            cv2.polylines(frame, [approx], True, (0,255,0), 3)
+            cv2.putText(frame, "A4 Detected", (tl[0], tl[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2)
+            return pixels_per_cm
+    return None
+
 def main():
     global WINDOW_NAME, calib_frame, calibrating, pixels_per_cm
 
@@ -102,9 +134,8 @@ def main():
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
 
-    WINDOW_NAME = "Sit-and-Reach (press 'c' to calibrate, 'q' to quit)"
+    WINDOW_NAME = "Sit-and-Reach (press 'q' to quit)"
     cv2.namedWindow(WINDOW_NAME)
-    cv2.setMouseCallback(WINDOW_NAME, mouse_callback)
 
     # CSV writer
     csvfile = open(OUTPUT_CSV, "w", newline="")
@@ -132,6 +163,35 @@ def main():
             if not ret:
                 print("Camera read failed. Exiting.")
                 break
+
+            # --- Draw guide rectangle for paper placement ---
+            guide_color = (0, 255, 255)  # Yellow
+            thickness = 2
+            h, w = frame.shape[:2]
+            # Rectangle size: about A4 aspect ratio, centered
+            rect_w = int(w * 0.25)
+            rect_h = int(rect_w * 29.7 / 21.0)  # A4 aspect ratio (height/width)
+            x1 = w // 2 - rect_w // 2
+            y1 = h // 2 - rect_h // 2
+            x2 = x1 + rect_w
+            y2 = y1 + rect_h
+            cv2.rectangle(frame, (x1, y1), (x2, y2), guide_color, thickness)
+            cv2.putText(frame, "Place A4 paper inside the box", (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, guide_color, 2)
+
+            # --- Automatic Calibration ---
+            if pixels_per_cm is None:
+                detected = auto_calibrate(frame)
+                if detected:
+                    pixels_per_cm = detected
+                    print(f"Auto-calibration complete: {pixels_per_cm:.3f} pixels/cm")
+                else:
+                    cv2.putText(frame, "Show an A4 paper to calibrate", (30,60),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
+                    cv2.imshow(WINDOW_NAME, frame)
+                    if cv2.waitKey(5) == ord('q'):
+                        break
+                    continue
 
             h, w = frame.shape[:2]
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
