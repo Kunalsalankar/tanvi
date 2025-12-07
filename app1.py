@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string, request, jsonify
+from flask import Flask, render_template_string, request, jsonify, Response
 from flask_cors import CORS
 import cv2
 import mediapipe as mp
@@ -20,6 +20,10 @@ detection_thread = None
 status_message = "Waiting to start..."
 user_height = 170.0  # Default height in cm
 user_weight = 70.0   # Default weight in kg
+
+# Global variable to store the latest frame for streaming
+latest_frame = None
+frame_lock = threading.Lock()
 
 # MediaPipe setup
 mp_drawing = mp.solutions.drawing_utils
@@ -81,7 +85,7 @@ def check_body_visible(landmarks, h, w):
         return False
 
 def run_jump_detection():
-    global jump_count, last_jump_height, max_jump_height, is_detection_running, status_message, user_height, user_weight
+    global jump_count, last_jump_height, max_jump_height, is_detection_running, status_message, user_height, user_weight, latest_frame, frame_lock
     
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
@@ -91,6 +95,8 @@ def run_jump_detection():
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
+    WINDOW_NAME = "Vertical Jump Counter"
+    cv2.namedWindow(WINDOW_NAME)
 
     csvfile = open(OUTPUT_CSV, "w", newline="")
     csvw = csv.writer(csvfile)
@@ -121,14 +127,33 @@ def run_jump_detection():
             h, w = frame.shape[:2]
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = pose.process(frame_rgb)
+            
+            # Store frame for streaming (convert back to BGR for display)
+            vis_frame = frame.copy()
+            
+            # Draw pose landmarks on frame
+            if results.pose_landmarks:
+                mp_drawing.draw_landmarks(vis_frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+            
+            # Store latest frame for streaming
+            with frame_lock:
+                _, buffer = cv2.imencode('.jpg', vis_frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                latest_frame = buffer.tobytes()
 
             if not setup_done:
+                cv2.putText(vis_frame, "Step 1: Adjust camera so full body is visible", (40, 60),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+                cv2.putText(vis_frame, "Stand so feet touch ground line", (40, 100),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
                 status_message = "Step 1: Adjust camera so full body is visible. Stand so feet touch ground line."
                 if results.pose_landmarks:
                     is_visible = check_body_visible(results.pose_landmarks.landmark, h, w)
                     px_cal, ground_y = calculate_px_per_cm(results.pose_landmarks.landmark, h, user_height)
                     if is_visible and px_cal:
                         px_per_cm = px_cal
+                        cv2.line(vis_frame, (0, int(ground_y)), (w, int(ground_y)), (0, 255, 0), 3)
+                        cv2.putText(vis_frame, "Ground Detected", (40, 150),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
                         lm = results.pose_landmarks.landmark
                         left_wrist = lm[mp_pose.PoseLandmark.LEFT_WRIST.value]
                         right_wrist = lm[mp_pose.PoseLandmark.RIGHT_WRIST.value]
@@ -137,16 +162,25 @@ def run_jump_detection():
                         dist = np.linalg.norm([lw_x - rw_x, lw_y - rw_y])
                         if dist < CLAP_DISTANCE_THRESHOLD:
                             clap_frames += 1
+                            cv2.putText(vis_frame, "Clap detected!", (40, 210), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
                             if clap_frames >= CLAP_FRAMES_REQUIRED:
                                 setup_done = True
                                 standing_reach_y = right_wrist.y * h
                                 kalman_filter.statePost = np.array([[standing_reach_y], [0]], np.float32)
+                                cv2.putText(vis_frame, "Confirmed! Start jumping.", (40, 250), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
                                 status_message = "Setup complete! Start jumping."
                         else:
                             clap_frames = 0
+                            cv2.putText(vis_frame, "Join (clap) your hands to start.", (40, 210), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                             status_message = "Join (clap) your hands to start."
                     else:
+                        cv2.putText(vis_frame, "Ensure full body & ground is visible.", (40, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                         status_message = "Ensure full body & ground is visible."
+                cv2.imshow(WINDOW_NAME, vis_frame)
+                key = cv2.waitKey(10) & 0xFF
+                if key == ord('q'):
+                    is_detection_running = False
+                    break
                 continue
 
             # Jump measurement with cheat detection
@@ -183,8 +217,31 @@ def run_jump_detection():
                             in_air = False
                             status_message = f"Jump detected! Height: {jump_height_cm:.2f} cm"
 
+                    # Display jump info on frame
+                    cv2.putText(vis_frame, f"Jumps: {jump_count}", (30, 60),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 2)
+                    cv2.putText(vis_frame, f"Last Jump Height: {jump_height_cm:.2f} cm", (30, 120),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+
+                    # Display cheat status
+                    cheat_text = "CHEAT DETECTED!" if cheat_flag else "No Cheat Detected"
+                    cheat_color = (0, 0, 255) if cheat_flag else (0, 255, 0)
+                    cv2.putText(vis_frame, f"Cheat Detection: {cheat_text}", (30, 180),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, cheat_color, 2)
+                    cv2.putText(vis_frame, "Press 'c' to toggle cheat detection", (30, 210),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 1)
+
+            cv2.imshow(WINDOW_NAME, vis_frame)
+            key = cv2.waitKey(10) & 0xFF
+            if key == ord('q'):
+                is_detection_running = False
+                break
+            elif key == ord('c'):
+                cheat_detection_enabled = not cheat_detection_enabled
+
     cap.release()
     csvfile.close()
+    cv2.destroyAllWindows()
     is_detection_running = False
     status_message = "Detection stopped."
 
@@ -279,6 +336,27 @@ def increment():
         if last_jump_height > max_jump_height:
             max_jump_height = last_jump_height
     return jsonify(success=True)
+
+@app.route('/video_feed')
+def video_feed():
+    """Stream video frames as MJPEG"""
+    def generate():
+        global latest_frame, frame_lock
+        while True:
+            with frame_lock:
+                if latest_frame is not None:
+                    frame = latest_frame
+                else:
+                    # Return a black frame if no frame available
+                    black_frame = np.zeros((480, 640, 3), dtype=np.uint8)
+                    _, buffer = cv2.imencode('.jpg', black_frame)
+                    frame = buffer.tobytes()
+            
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            time.sleep(0.033)  # ~30 FPS
+    
+    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
     # Allow external connections (for physical devices)

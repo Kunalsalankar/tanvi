@@ -25,7 +25,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
     _fetchData();
     // Poll every second for updates
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      _fetchData();
+      if (mounted) {
+        _fetchData();
+      }
     });
   }
 

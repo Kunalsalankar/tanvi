@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:http/http.dart' as http;
+import 'dart:async';
+import 'dart:typed_data';
+import 'api_service.dart';
 
 class CameraScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -15,6 +19,9 @@ class _CameraScreenState extends State<CameraScreen> {
   CameraController? _controller;
   bool _isInitialized = false;
   bool _isPermissionGranted = false;
+  bool _showServerFeed = true; // Toggle between device camera and server feed
+  Timer? _streamTimer;
+  Uint8List? _currentFrame;
 
   @override
   void initState() {
