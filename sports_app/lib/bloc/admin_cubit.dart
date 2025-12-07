@@ -1,112 +1,78 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'admin_state.dart';
 import '../api_service.dart';
+import '../services/results_service.dart';
 
 class AdminCubit extends Cubit<AdminState> {
   final ApiService apiService;
+  final ResultsService _resultsService = ResultsService();
 
   AdminCubit({required this.apiService}) : super(const AdminState()) {
     _initializeData();
   }
 
-  void _initializeData() {
-    // Mock data - replace with actual API calls
-    final mockUsers = [
-      UserRanking(
-        userId: '1',
-        name: 'Raj Kumar',
-        age: 20,
-        sport: 'Standing Vertical Jump',
-        score: 95.5,
-        rank: 1,
-      ),
-      UserRanking(
-        userId: '2',
-        name: 'Priya Singh',
-        age: 19,
-        sport: 'Sit-ups',
-        score: 92.3,
-        rank: 1,
-      ),
-      UserRanking(
-        userId: '3',
-        name: 'Arun Patel',
-        age: 21,
-        sport: 'Standing Broad Jump',
-        score: 88.9,
-        rank: 1,
-      ),
-      UserRanking(
-        userId: '4',
-        name: 'Neha Sharma',
-        age: 20,
-        sport: 'Sit-ups',
-        score: 88.1,
-        rank: 2,
-      ),
-      UserRanking(
-        userId: '5',
-        name: 'Vikram Yadav',
-        age: 22,
-        sport: 'Standing Vertical Jump',
-        score: 87.2,
-        rank: 2,
-      ),
-      UserRanking(
-        userId: '6',
-        name: 'Anjali Gupta',
-        age: 21,
-        sport: 'Standing Broad Jump',
-        score: 86.6,
-        rank: 2,
-      ),
-      UserRanking(
-        userId: '7',
-        name: 'Ravi Singh',
-        age: 19,
-        sport: 'Sit-ups',
-        score: 85.4,
-        rank: 3,
-      ),
-      UserRanking(
-        userId: '8',
-        name: 'Divya Nair',
-        age: 20,
-        sport: 'Standing Vertical Jump',
-        score: 84.3,
-        rank: 3,
-      ),
-      UserRanking(
-        userId: '9',
-        name: 'Sanjay Tiwari',
-        age: 22,
-        sport: 'Standing Broad Jump',
-        score: 82.5,
-        rank: 3,
-      ),
-      UserRanking(
-        userId: '10',
-        name: 'Meera Das',
-        age: 19,
-        sport: 'Standing Vertical Jump',
-        score: 80.1,
-        rank: 4,
-      ),
-    ];
-
-    final sports = {
-      'Standing Vertical Jump',
-      'Standing Broad Jump',
-      'Sit-ups'
-    }.toList();
-    final ages = {'19', '20', '21', '22'}.toList();
-
-    emit(state.copyWith(
-      allUsers: mockUsers,
-      filteredUsers: mockUsers,
-      availableSports: sports,
-      availableAges: ages,
-    ));
+  Future<void> _initializeData() async {
+    emit(state.copyWith(isLoading: true));
+    try {
+      final results = await _resultsService.getAllTestResults();
+      
+      // Convert test results to user rankings grouped by sport
+      final List<UserRanking> rankings = [];
+      final Map<String, List<dynamic>> sportResults = {};
+      final Set<String> sportsSet = {};
+      final Set<int> agesSet = {};
+      
+      // Group results by sport and collect available sports and ages
+      for (var result in results) {
+        final sport = result['sportType'] ?? 'Unknown';
+        final age = result['userAge'] as int? ?? 0;
+        
+        sportsSet.add(sport);
+        if (age > 0) agesSet.add(age);
+        
+        if (!sportResults.containsKey(sport)) {
+          sportResults[sport] = [];
+        }
+        sportResults[sport]!.add(result);
+      }
+      
+      // Create rankings for each sport
+      int globalRank = 1;
+      for (var sport in sportResults.keys) {
+        final topResults = sportResults[sport]!
+            .toList()
+            ..sort((a, b) => (b['result'] as num).compareTo(a['result'] as num));
+        
+        for (int i = 0; i < topResults.length; i++) {
+          final result = topResults[i];
+          rankings.add(UserRanking(
+            userId: result['userId'] ?? '',
+            name: result['userName'] ?? 'Unknown',
+            age: result['userAge'] ?? 0,
+            sport: sport,
+            score: (result['result'] as num).toDouble(),
+            rank: i + 1,
+          ));
+        }
+      }
+      
+      // Sort available sports and ages
+      final sortedSports = sportsSet.toList()..sort();
+      final sortedAges = agesSet.toList()..sort();
+      
+      emit(state.copyWith(
+        isLoading: false,
+        allUsers: rankings,
+        filteredUsers: rankings,
+        availableSports: sortedSports,
+        availableAges: sortedAges.map((age) => age.toString()).toList(),
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: 'Exception: Error fetching test results: ${e.toString().replaceAll('Exception: ', '')}',
+      ));
+    }
   }
 
   void updateSearchQuery(String query) {

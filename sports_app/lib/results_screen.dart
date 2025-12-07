@@ -4,6 +4,9 @@ import 'api_service.dart';
 import 'sport_info_screen.dart';
 import 'bloc/jump/jump_cubit.dart';
 import 'bloc/jump/jump_state.dart';
+import 'bloc/auth_cubit.dart';
+import 'bloc/auth_state.dart';
+import 'services/results_service.dart';
 
 class ResultsScreen extends StatelessWidget {
   final ApiService apiService;
@@ -32,6 +35,9 @@ class ResultsScreen extends StatelessWidget {
         initialWeight: weight?.toString() ?? '70',
         sportType: sportType,
         athleteName: athleteName,
+        athleteAge: age,
+        athleteHeight: height,
+        athleteWeight: weight,
       ),
     );
   }
@@ -42,6 +48,9 @@ class _ResultsScreenContent extends StatefulWidget {
   final String initialWeight;
   final SportType? sportType;
   final String? athleteName;
+  final int? athleteAge;
+  final double? athleteHeight;
+  final double? athleteWeight;
 
   const _ResultsScreenContent({
     Key? key,
@@ -49,6 +58,9 @@ class _ResultsScreenContent extends StatefulWidget {
     required this.initialWeight,
     this.sportType,
     this.athleteName,
+    this.athleteAge,
+    this.athleteHeight,
+    this.athleteWeight,
   }) : super(key: key);
 
   @override
@@ -71,6 +83,40 @@ class _ResultsScreenContentState extends State<_ResultsScreenContent> {
     _heightController.dispose();
     _weightController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveTestResult(JumpState state) async {
+    try {
+      final authState = context.read<AuthCubit>().state;
+      final resultsService = ResultsService();
+      
+      if (authState.userId != null) {
+        await resultsService.saveTestResult(
+          userId: authState.userId!,
+          userName: authState.name ?? widget.athleteName ?? 'Unknown',
+          userAge: authState.age ?? widget.athleteAge ?? 0,
+          userHeight: authState.height ?? widget.athleteHeight ?? 170.0,
+          userWeight: authState.weight ?? widget.athleteWeight ?? 70.0,
+          sportType: _getSportTitle(widget.sportType ?? SportType.verticalJump),
+          result: state.maxJumpHeight,
+          resultUnit: 'cm',
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Test result saved successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error saving result: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   String _getSportTitle(SportType type) {
@@ -122,7 +168,11 @@ class _ResultsScreenContentState extends State<_ResultsScreenContent> {
             children: [
               FloatingActionButton.extended(
                 onPressed: state.isRunning
-                    ? () => context.read<JumpCubit>().stopDetection()
+                    ? () {
+                        context.read<JumpCubit>().stopDetection();
+                        // Save the test result
+                        _saveTestResult(state);
+                      }
                     : () => _showStartDialog(context),
                 backgroundColor: state.isRunning ? Colors.red : Colors.green,
                 icon: Icon(state.isRunning ? Icons.stop : Icons.play_arrow),

@@ -321,19 +321,21 @@ class AdminDashboardView extends StatelessWidget {
         selected: isSelected,
         onSelected: (_) => onPressed(),
         backgroundColor: Colors.white.withOpacity(0.9),
-        selectedColor: Colors.white,
+        selectedColor: Colors.blue.shade50,
         side: BorderSide(
-          color: isSelected ? Colors.white : Colors.transparent,
+          color: isSelected ? Colors.blue.shade400 : Colors.grey.shade300,
           width: isSelected ? 2 : 1,
         ),
         labelStyle: TextStyle(
-          color: isSelected ? Colors.grey.shade900 : Colors.grey.shade700,
+          color: isSelected ? Colors.blue.shade700 : Colors.grey.shade700,
           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
           fontSize: 13,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
+        elevation: isSelected ? 4 : 2,
+        shadowColor: Colors.blue.withOpacity(0.3),
       ),
     );
   }
@@ -425,32 +427,38 @@ class AdminDashboardView extends StatelessWidget {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          // Sport Badge
+                          // Sport Badge with Icon
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.grey.shade100,
-                                  Colors.grey.shade50,
-                                ],
-                              ),
+                              color: _getSportColor(user.sport).withOpacity(0.15),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: Colors.grey.shade300,
-                                width: 0.5,
+                                color: _getSportColor(user.sport).withOpacity(0.4),
+                                width: 1,
                               ),
                             ),
-                            child: Text(
-                              user.sport,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.grey.shade700,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _getSportIcon(user.sport),
+                                  size: 14,
+                                  color: _getSportColor(user.sport),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  user.sport,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: _getSportColor(user.sport),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -567,6 +575,38 @@ class AdminDashboardView extends StatelessWidget {
         return Colors.grey;
       case 3:
         return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getSportIcon(String sport) {
+    switch (sport.toLowerCase()) {
+      case 'standing broad jump':
+        return Icons.directions_run;
+      case 'standing vertical jump':
+      case 'vertical jump':
+        return Icons.sports_handball;
+      case 'sit ups':
+        return Icons.fitness_center;
+      case 'sit and reach':
+        return Icons.accessibility;
+      default:
+        return Icons.sports;
+    }
+  }
+
+  Color _getSportColor(String sport) {
+    switch (sport.toLowerCase()) {
+      case 'standing broad jump':
+        return Colors.blue;
+      case 'standing vertical jump':
+      case 'vertical jump':
+        return Colors.purple;
+      case 'sit ups':
+        return Colors.green;
+      case 'sit and reach':
+        return Colors.teal;
       default:
         return Colors.grey;
     }

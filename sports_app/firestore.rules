@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read/write access to the 'users' collection for testing
+    match /users/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Allow read/write access to the 'test_results' collection for testing
+    match /test_results/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

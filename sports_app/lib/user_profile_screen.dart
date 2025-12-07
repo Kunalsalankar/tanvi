@@ -30,10 +30,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   void _initializeControllers(AuthState authState) {
     if (!_controllersInitialized) {
-      nameController.text = authState.name ?? '';
-      ageController.text = authState.age?.toString() ?? '';
-      heightController.text = authState.height?.toString() ?? '';
-      weightController.text = authState.weight?.toString() ?? '';
+      // Use mock data if real data is not available
+      nameController.text = authState.name ?? 'Raj Kumar';
+      ageController.text = (authState.age?.toString() ?? '22');
+      heightController.text = (authState.height?.toString() ?? '178');
+      weightController.text = (authState.weight?.toString() ?? '75');
       _controllersInitialized = true;
     }
   }
@@ -57,13 +58,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         return Scaffold(
           appBar: AppBar(
             elevation: 0,
-            backgroundColor: Colors.blue.shade600,
+            backgroundColor: Colors.white,
             title: const Text(
               'My Profile',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 24,
-                color: Colors.white,
+                color: Colors.black87,
               ),
             ),
             actions: [
@@ -122,7 +123,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   width: double.infinity,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.blue.shade600, Colors.blue.shade400],
+                      colors: [Colors.blue.shade700, Colors.blue.shade600],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -145,7 +146,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        state.name ?? 'User',
+                        state.name ?? 'Raj Kumar',
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -253,7 +254,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(
-          color: enabled ? Colors.blue : Colors.grey.shade300,
+          color: enabled ? Colors.blue.shade600 : Colors.grey.shade300,
           width: enabled ? 2 : 1,
         ),
         borderRadius: BorderRadius.circular(12),
@@ -265,7 +266,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(
-            color: enabled ? Colors.black87 : Colors.grey.shade600,
+            color: enabled ? Colors.blue.shade700 : Colors.grey.shade600,
             fontWeight: FontWeight.w500,
           ),
           prefixIcon: Icon(icon, color: Colors.black87),
@@ -275,15 +276,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          color: enabled ? Colors.black87 : Colors.grey.shade700,
+          color: enabled ? Colors.blue.shade700 : Colors.grey.shade700,
         ),
       ),
     );
   }
 
   Widget _buildBMICard(AuthState state) {
-    final height = state.height ?? 0;
-    final weight = state.weight ?? 0;
+    final height = state.height ?? 178;
+    final weight = state.weight ?? 75;
 
     if (height == 0 || weight == 0) {
       return const SizedBox.shrink();
