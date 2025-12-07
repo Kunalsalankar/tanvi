@@ -51,3 +51,7 @@ class SquatState extends Equatable {
       ];
 }
 
+
+
+
+
