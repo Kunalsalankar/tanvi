@@ -6,7 +6,7 @@ class ApiService {
   // For Android emulator use: http://10.0.2.2:5000
   // For iOS simulator use: http://localhost:5000
   // For physical device, use your computer's IP: http://192.168.x.x:5000
-  static const String baseUrl = 'http://10.235.110.20:5000'; // Physical device IP
+  static const String baseUrl = 'http://10.0.2.2:5000'; // Android emulator IP
   
   Future<JumpData> getStatus() async {
     try {
@@ -91,6 +91,81 @@ class ApiService {
       return false;
     }
   }
+
+  // Squat detection endpoints (using port 5001 for squat_app.py)
+  // For Android emulator use: http://10.0.2.2:5001
+  // For iOS simulator use: http://localhost:5001
+  // For physical device, use your computer's IP: http://192.168.x.x:5001
+  static const String squatBaseUrl = 'http://10.117.19.2:5001'; // Your computer's current IP address
+  
+  Future<SquatData> getSquatStatus() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$squatBaseUrl/squat/status'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return SquatData.fromJson(data);
+      } else {
+        throw Exception('Failed to load squat status: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching squat status: $e');
+    }
+  }
+
+  Future<bool> startSquatDetection() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$squatBaseUrl/squat/start'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> stopSquatDetection() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$squatBaseUrl/squat/stop'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> resetSquatDetection() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$squatBaseUrl/squat/reset'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
 }
 
 class JumpData {
@@ -114,6 +189,32 @@ class JumpData {
       lastJumpHeight: (json['last_jump_height'] ?? 0.0).toDouble(),
       maxJumpHeight: (json['max_jump_height'] ?? 0.0).toDouble(),
       statusMessage: json['status_message'] ?? 'Waiting to start...',
+      isRunning: json['is_running'] ?? false,
+    );
+  }
+}
+
+class SquatData {
+  final int squatCount;
+  final String currentStage;
+  final double currentAngle;
+  final String statusMessage;
+  final bool isRunning;
+
+  SquatData({
+    required this.squatCount,
+    required this.currentStage,
+    required this.currentAngle,
+    required this.statusMessage,
+    required this.isRunning,
+  });
+
+  factory SquatData.fromJson(Map<String, dynamic> json) {
+    return SquatData(
+      squatCount: json['squat_count'] ?? 0,
+      currentStage: json['current_stage'] ?? 'up',
+      currentAngle: (json['current_angle'] ?? 0.0).toDouble(),
+      statusMessage: json['status_message'] ?? 'Ready to start',
       isRunning: json['is_running'] ?? false,
     );
   }

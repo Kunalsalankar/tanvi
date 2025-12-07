@@ -99,3 +99,15 @@ python -m http.server 8080
 
 **Note:** The jump detection camera runs on your computer (Flask server), not in the browser. The web app is best for viewing results and controlling the detection.
 
+
+
+
+
+
+
+
+
+
+
+
+
