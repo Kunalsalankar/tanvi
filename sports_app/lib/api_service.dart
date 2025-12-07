@@ -3,10 +3,9 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   // Change this to your Flask server IP address
-  // For Android emulator use: http://10.0.2.2:5000
-  // For iOS simulator use: http://localhost:5000
-  // For physical device, use your computer's IP: http://192.168.x.x:5000
-  static const String baseUrl = 'http://10.0.2.2:5000'; // Android emulator IP
+  // For physical device, use your computer's IP: http://192.168.x.x:5001
+  static const String baseUrl = 'http://10.117.19.2:5001';
+  static const String squatBaseUrl = 'http://10.117.19.2:5001';
   
   Future<JumpData> getStatus() async {
     try {
@@ -96,7 +95,7 @@ class ApiService {
   // For Android emulator use: http://10.0.2.2:5001
   // For iOS simulator use: http://localhost:5001
   // For physical device, use your computer's IP: http://192.168.x.x:5001
-  static const String squatBaseUrl = 'http://10.117.19.2:5001'; // Your computer's current IP address
+  // Squat detection endpoints (using port 5001 for squat_app.py)
   
   Future<SquatData> getSquatStatus() async {
     try {
