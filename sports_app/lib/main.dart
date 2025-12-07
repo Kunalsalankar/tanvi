@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'dart:async';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'firebase_options.dart';
 import 'api_service.dart';
-import 'camera_screen.dart';
-import 'results_screen.dart';
 import 'sport_selection_screen.dart';
 import 'admin_screen.dart';
-import 'login_screen.dart';
+import 'admin_dashboard_screen.dart';
+import 'auth_screen.dart';
+import 'user_profile_screen.dart';
+import 'bloc/auth_cubit.dart';
+import 'services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   // Get available cameras
   final cameras = await availableCameras();
@@ -24,8 +34,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Jump Counter App',
+    return BlocProvider(
+      create: (context) => AuthCubit(authService: AuthService()),
+      child: MaterialApp(
+      title: ' Sports App',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         primaryColor: Colors.blue.shade600,
@@ -57,8 +69,10 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const LoginScreen(),
+      home: const AuthScreen(),
       routes: {
+        '/login': (context) => const AuthScreen(),
+        '/profile': (context) => const UserProfileScreen(),
         '/main': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
           final isAdmin = args?['isAdmin'] ?? false;
@@ -69,8 +83,10 @@ class MyApp extends StatelessWidget {
           final isAdmin = args?['isAdmin'] ?? false;
           return AdminScreen(isAdmin: isAdmin);
         },
+        '/admin-dashboard': (context) => const AdminDashboardScreen(),
       },
       debugShowCheckedModeBanner: false,
+      ),
     );
   }
 }
@@ -90,128 +106,31 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
   final ApiService _apiService = ApiService();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          CameraScreen(cameras: widget.cameras),
-          ResultsScreen(apiService: _apiService),
-          SportSelectionScreen(apiService: _apiService),
-          AdminScreen(isAdmin: widget.isAdmin),
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.blue.shade600,
+        title: const Text(
+          'Sports Authority of India',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: Colors.white,
+          ),
+        ),
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.pushNamed(context, '/profile'),
+            icon: const Icon(Icons.person_outline),
+            tooltip: 'Profile',
+          ),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            // Prevent non-admins from accessing admin tab
-            if (index == 3 && !widget.isAdmin) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Admin access required. Please login as admin.'),
-                  backgroundColor: Colors.red,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-              return;
-            }
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: Colors.blue.shade600,
-          unselectedItemColor: Colors.grey.shade600,
-          selectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 12,
-          ),
-          items: [
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _currentIndex == 0
-                      ? Colors.blue.shade50
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.videocam,
-                  size: 24,
-                ),
-              ),
-              label: 'Camera',
-            ),
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _currentIndex == 1
-                      ? Colors.blue.shade50
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.analytics,
-                  size: 24,
-                ),
-              ),
-              label: 'Results',
-            ),
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _currentIndex == 2
-                      ? Colors.blue.shade50
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.sports,
-                  size: 24,
-                ),
-              ),
-              label: 'Sports',
-            ),
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _currentIndex == 3
-                      ? Colors.blue.shade50
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.admin_panel_settings,
-                  size: 24,
-                ),
-              ),
-              label: 'Admin',
-            ),
-          ],
-        ),
-      ),
+      body: SportSelectionScreen(apiService: _apiService),
     );
   }
 }

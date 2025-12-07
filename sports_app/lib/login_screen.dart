@@ -43,7 +43,8 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       // Admin login - check credentials
       if (username == 'admin' && password == 'admin123') {
-        Navigator.pushReplacementNamed(context, '/main', arguments: {'isAdmin': true});
+        // Navigate directly to admin dashboard
+        Navigator.pushReplacementNamed(context, '/admin-dashboard');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

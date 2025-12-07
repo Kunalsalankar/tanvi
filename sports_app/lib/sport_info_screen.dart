@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'api_service.dart';
 import 'results_screen.dart';
 import 'squat_screen.dart';
+import 'bloc/auth_cubit.dart';
+import 'bloc/auth_state.dart';
 
 enum SportType {
   standingBroadJump,
@@ -27,12 +30,6 @@ class SportInfoScreen extends StatefulWidget {
 }
 
 class _SportInfoScreenState extends State<SportInfoScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _heightController = TextEditingController();
-  final TextEditingController _weightController = TextEditingController();
-  final TextEditingController _ageController = TextEditingController();
-  final TextEditingController _nameController = TextEditingController();
-
   String get _sportTitle {
     switch (widget.sportType) {
       case SportType.standingBroadJump:
@@ -156,47 +153,43 @@ class _SportInfoScreenState extends State<SportInfoScreen> {
 
   @override
   void dispose() {
-    _heightController.dispose();
-    _weightController.dispose();
-    _ageController.dispose();
-    _nameController.dispose();
     super.dispose();
   }
 
   void _startTest() {
-    if (_formKey.currentState!.validate()) {
-      final height = double.tryParse(_heightController.text) ?? 170.0;
-      final weight = double.tryParse(_weightController.text) ?? 70.0;
-      final age = int.tryParse(_ageController.text) ?? 25;
-      final name = _nameController.text.trim();
+    final authState = context.read<AuthCubit>().state;
+    
+    final height = authState.height ?? 170.0;
+    final weight = authState.weight ?? 70.0;
+    final age = authState.age ?? 25;
+    final name = authState.name ?? 'Athlete';
 
-      // Navigate to appropriate screen based on sport type
-      if (widget.sportType == SportType.squat) {
-        // Navigate to squat screen for squat sport
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SquatScreen(
-              apiService: widget.apiService,
-            ),
+    // Navigate to appropriate screen based on sport type
+    if (widget.sportType == SportType.squat) {
+      // Navigate to squat screen for squat sport
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SquatScreen(
+            apiService: widget.apiService,
           ),
-        );
-      } else {
-        // Navigate to results screen for other sports
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ResultsScreen(
-              apiService: widget.apiService,
-              sportType: widget.sportType,
-              athleteName: name,
-              height: height,
-              weight: weight,
-              age: age,
-            ),
+        ),
+      );
+    } else {
+      // Navigate to results screen for other sports
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ResultsScreen(
+            apiService: widget.apiService,
+            sportType: widget.sportType,
+            athleteName: name,
+            height: height,
+            weight: weight,
+            age: age,
           ),
-        );
-      }
+        ),
+      );
     }
   }
 
@@ -218,11 +211,9 @@ class _SportInfoScreenState extends State<SportInfoScreen> {
         color: Colors.grey.shade50,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
                 // Sport Info Card
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -338,177 +329,38 @@ class _SportInfoScreenState extends State<SportInfoScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Form Fields Card
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.person_outline,
-                            color: _sportColor,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Athlete Information',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      
-                      // Name Field
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: InputDecoration(
-                          labelText: 'Full Name',
-                          hintText: 'Enter your full name',
-                          prefixIcon: const Icon(Icons.person),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey.shade50,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter your name';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Height Field
-                      TextFormField(
-                        controller: _heightController,
-                        decoration: InputDecoration(
-                          labelText: 'Height (cm)',
-                          hintText: 'Enter your height in cm',
-                          prefixIcon: const Icon(Icons.height),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey.shade50,
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter your height';
-                          }
-                          final height = double.tryParse(value);
-                          if (height == null || height <= 0 || height > 300) {
-                            return 'Please enter a valid height (1-300 cm)';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Weight Field
-                      TextFormField(
-                        controller: _weightController,
-                        decoration: InputDecoration(
-                          labelText: 'Weight (kg)',
-                          hintText: 'Enter your weight in kg',
-                          prefixIcon: const Icon(Icons.monitor_weight),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey.shade50,
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter your weight';
-                          }
-                          final weight = double.tryParse(value);
-                          if (weight == null || weight <= 0 || weight > 300) {
-                            return 'Please enter a valid weight (1-300 kg)';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Age Field
-                      TextFormField(
-                        controller: _ageController,
-                        decoration: InputDecoration(
-                          labelText: 'Age',
-                          hintText: 'Enter your age',
-                          prefixIcon: const Icon(Icons.calendar_today),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey.shade50,
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter your age';
-                          }
-                          final age = int.tryParse(value);
-                          if (age == null || age <= 0 || age > 120) {
-                            return 'Please enter a valid age (1-120)';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
                 // Start Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _startTest,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _sportColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                BlocBuilder<AuthCubit, AuthState>(
+                  builder: (context, state) {
+                    return SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _startTest,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _sportColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                        ),
+                        child: const Text(
+                          'Start Test',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                      elevation: 2,
-                    ),
-                    child: const Text(
-                      'Start Test',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ],
             ),
           ),
         ),
-      ),
-    );
+      );
+    }
   }
-}
 

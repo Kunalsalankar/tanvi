@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'api_service.dart';
 import 'sport_info_screen.dart';
 
+
 class SportSelectionScreen extends StatefulWidget {
   final ApiService apiService;
 
@@ -53,9 +54,7 @@ class _SportSelectionScreenState extends State<SportSelectionScreen>
     final items = [
       _SportItem('Standing Broad Jump', Icons.directions_run, Colors.blue, () => _openSportInfo(SportType.standingBroadJump)),
       _SportItem('Vertical Jump', Icons.sports_handball, Colors.purple, () => _openSportInfo(SportType.verticalJump)),
-      _SportItem('Sit and Reach', Icons.sports_gymnastics, Colors.orange, () => _openSportInfo(SportType.sitAndReach)),
       _SportItem('Sit Ups', Icons.fitness_center, Colors.green, () => _openSportInfo(SportType.sitUps)),
-      _SportItem('Medical Ball Throw', Icons.sports_kabaddi, Colors.indigo, () => _openSportInfo(SportType.medicalBallThrow)),
       _SportItem('Squat', Icons.accessibility_new, Colors.teal, () => _openSportInfo(SportType.squat)),
     ];
 
@@ -137,29 +136,6 @@ class _SportSelectionScreenState extends State<SportSelectionScreen>
                       index: entry.key,
                     );
                   }).toList(),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.admin_panel_settings),
-                  label: const Text(
-                    'Open Admin Page',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  onPressed: () => Navigator.pushNamed(context, '/admin'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 2,
-                  ),
                 ),
               ),
             ],
