@@ -361,6 +361,6 @@ def video_feed():
 if __name__ == '__main__':
     # Allow external connections (for physical devices)
     # Use host='127.0.0.1' for localhost only, or '0.0.0.0' for all interfaces
-    print("Starting Flask server on http://0.0.0.0:5000")
-    print("For physical device, use: http://10.235.110.146:5000")
-    app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
+    print("Starting Flask server on http://0.0.0.0:5001")
+    print("For physical device, use: http://10.117.19.2:5001")
+    app.run(host='0.0.0.0', port=5001, debug=True, threaded=True)
