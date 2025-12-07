@@ -1,0 +1,23 @@
+allprojects {
+    repositories {
+        // Use mirror repositories if Google's is blocked
+        google()
+        mavenCentral()
+        maven { url 'https://maven.google.com' }
+        maven { url 'https://jitpack.io' }
+        // Alternative mirror if Google is blocked
+        maven { url 'https://repo1.maven.org/maven2' }
+    }
+}
+
+rootProject.buildDir = "../build"
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}

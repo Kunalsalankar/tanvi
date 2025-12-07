@@ -1,0 +1,9 @@
+flask==3.0.0
+flask-cors==4.0.0
+opencv-python==4.8.1.78
+mediapipe==0.10.7
+numpy>=1.24.0,<2.0.0
+# Note: protobuf version is managed by mediapipe (requires <4.0)
+# NumPy must be <2.0 for compatibility with opencv-python 4.8.1.78
+# If you need protobuf>=4.21.6 for other packages (like grpcio-status),
+# you'll need to use a virtual environment or upgrade mediapipe to a newer version
