@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -6,6 +7,13 @@ import threading
 import time
 
 app = Flask(__name__)
+
+# Enable CORS for Flutter web app - allow all origins for development
+CORS(app, 
+     resources={r"/*": {"origins": "*"}},
+     supports_credentials=False,
+     methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+     allow_headers=["Content-Type", "Authorization"])  # Enable CORS for Flutter app
 
 # Global state for squat detection
 squat_count = 0
@@ -180,7 +188,9 @@ def squat_reset():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    app.run(debug=True, host='0.0.0.0', port=5002)
+
+
 
 
 

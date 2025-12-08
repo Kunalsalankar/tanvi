@@ -336,7 +336,7 @@ class _SportInfoScreenState extends State<SportInfoScreen> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: state.isLoggedIn ? _startTest : null,
+                        onPressed: _startTest,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _sportColor,
                           foregroundColor: Colors.white,

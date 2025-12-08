@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'firebase_options.dart';
@@ -13,6 +13,11 @@ import 'user_profile_screen.dart';
 import 'bloc/auth_cubit.dart';
 import 'services/auth_service.dart';
 
+// Type alias for camera - can be dynamic for web support
+typedef CameraDescription = dynamic;
+
+List<CameraDescription> cameras = [];
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -21,21 +26,31 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Get available cameras
-  final cameras = await availableCameras();
+  // Get available cameras only for mobile (skip on web)
+  if (!kIsWeb) {
+    // Mobile/desktop platforms - camera initialization can be added here
+    // cameras = await availableCameras();
+  } else {
+    cameras = [];
+  }
 
-  runApp(MyApp(cameras: cameras));
+  // Initialize AuthService
+  final authService = AuthService();
+  await authService.initialize();
+
+  runApp(MyApp(cameras: cameras, authService: authService));
 }
 
 class MyApp extends StatelessWidget {
   final List<CameraDescription> cameras;
+  final AuthService authService;
 
-  const MyApp({Key? key, required this.cameras}) : super(key: key);
+  const MyApp({Key? key, required this.cameras, required this.authService}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => AuthCubit(authService: AuthService()),
+      create: (context) => AuthCubit(authService: authService),
       child: MaterialApp(
       title: ' Sports App',
       theme: ThemeData(

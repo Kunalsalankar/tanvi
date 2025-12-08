@@ -1,17 +1,28 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ApiService {
-  // Change this to your Flask server IP address
-  // For physical device, use your computer's IP: http://192.168.x.x:5001
-  static const String baseUrl = 'http://10.117.19.2:5001';
-  static const String squatBaseUrl = 'http://10.117.19.2:5001';
-  
+  // For web app: use localhost
+  // For physical device: use your computer's IP address (e.g., http://10.117.19.2:5001)
+  // For Android emulator: use http://10.0.2.2:5001
+  // For iOS simulator: use http://localhost:5001
+  static const String baseUrl = 'http://localhost:5001';  // Jump detection (app1.py)
+  static const String squatBaseUrl = 'http://localhost:5002';  // Squat detection (squat_app.py)
+
+  // Check if running on web
+  static bool get isWeb => kIsWeb;
+
   Future<JumpData> getStatus() async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/status'),
         headers: {'Content-Type': 'application/json'},
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Connection timeout: Server did not respond in time. Make sure app1.py is running on port 5001');
+        },
       );
       
       if (response.statusCode == 200) {
@@ -20,6 +31,8 @@ class ApiService {
       } else {
         throw Exception('Failed to load status: ${response.statusCode}');
       }
+    } on http.ClientException catch (e) {
+      throw Exception('Connection failed: Server at $baseUrl is not reachable. Make sure app1.py is running: $e');
     } catch (e) {
       throw Exception('Error fetching status: $e');
     }
@@ -31,6 +44,11 @@ class ApiService {
         Uri.parse('$baseUrl/increment'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'jump_height': jumpHeight}),
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Connection timeout: Server did not respond in time');
+        },
       );
       
       return response.statusCode == 200;
@@ -45,6 +63,11 @@ class ApiService {
         Uri.parse('$baseUrl/start'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'height': height, 'weight': weight}),
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Connection timeout: Server did not respond in time');
+        },
       );
       
       if (response.statusCode == 200) {
@@ -62,6 +85,11 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$baseUrl/stop'),
         headers: {'Content-Type': 'application/json'},
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Connection timeout: Server did not respond in time');
+        },
       );
       
       if (response.statusCode == 200) {
@@ -79,6 +107,11 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$baseUrl/reset'),
         headers: {'Content-Type': 'application/json'},
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Connection timeout: Server did not respond in time');
+        },
       );
       
       if (response.statusCode == 200) {
@@ -94,7 +127,7 @@ class ApiService {
   // Squat detection endpoints (using port 5001 for squat_app.py)
   // For Android emulator use: http://10.0.2.2:5001
   // For iOS simulator use: http://localhost:5001
-  // For physical device, use your computer's IP: http://192.168.x.x:5001
+  // For physical device, use your computer's IP: http://10.117.19.2:5001
   // Squat detection endpoints (using port 5001 for squat_app.py)
   
   Future<SquatData> getSquatStatus() async {
@@ -102,6 +135,11 @@ class ApiService {
       final response = await http.get(
         Uri.parse('$squatBaseUrl/squat/status'),
         headers: {'Content-Type': 'application/json'},
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Connection timeout: Server did not respond in time');
+        },
       );
       
       if (response.statusCode == 200) {
@@ -120,6 +158,11 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$squatBaseUrl/squat/start'),
         headers: {'Content-Type': 'application/json'},
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Connection timeout: Server did not respond in time');
+        },
       );
       
       if (response.statusCode == 200) {
@@ -137,6 +180,11 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$squatBaseUrl/squat/stop'),
         headers: {'Content-Type': 'application/json'},
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Connection timeout: Server did not respond in time');
+        },
       );
       
       if (response.statusCode == 200) {
@@ -154,6 +202,11 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$squatBaseUrl/squat/reset'),
         headers: {'Content-Type': 'application/json'},
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Connection timeout: Server did not respond in time');
+        },
       );
       
       if (response.statusCode == 200) {
@@ -218,5 +271,3 @@ class SquatData {
     );
   }
 }
-
-

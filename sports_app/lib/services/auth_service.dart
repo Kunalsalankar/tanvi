@@ -9,7 +9,12 @@ class AuthService {
   String? _currentUserName;
 
   AuthService() {
-    _loadSessionFromPreferences();
+    // Session will be loaded asynchronously by the caller
+  }
+  
+  // Initialize session on app startup - must be called before using auth
+  Future<void> initialize() async {
+    await _loadSessionFromPreferences();
   }
 
   // Load session from SharedPreferences

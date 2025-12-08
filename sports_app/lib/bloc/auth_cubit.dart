@@ -10,6 +10,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> _initializeAuth() async {
+    // AuthService is already initialized in main.dart
     await _checkAuthStatus();
   }
 
