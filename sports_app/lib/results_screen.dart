@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'api_service.dart';
+import 'strings.dart';
 import 'sport_info_screen.dart';
 import 'bloc/jump/jump_cubit.dart';
 import 'bloc/jump/jump_state.dart';
 import 'bloc/auth_cubit.dart';
 import 'bloc/auth_state.dart';
+import 'bloc/language_cubit.dart';
 import 'services/results_service.dart';
 
 class ResultsScreen extends StatelessWidget {
@@ -121,12 +123,12 @@ class _ResultsScreenContentState extends State<_ResultsScreenContent> {
 
   String _getSportTitle(SportType type) {
     switch (type) {
-      case SportType.standingBroadJump: return 'Standing Broad Jump';
-      case SportType.verticalJump: return 'Vertical Jump';
-      case SportType.sitAndReach: return 'Sit and Reach';
-      case SportType.sitUps: return 'Sit Ups';
-      case SportType.medicalBallThrow: return 'Medical Ball Throw';
-      case SportType.squat: return 'Squat';
+      case SportType.standingBroadJump: return 'standingBroadJump';
+      case SportType.verticalJump: return 'verticalJump';
+      case SportType.sitAndReach: return 'sitAndReach';
+      case SportType.sitUps: return 'sitUps';
+      case SportType.medicalBallThrow: return 'medicalBallThrow';
+      case SportType.squat: return 'squat';
     }
   }
 
@@ -143,179 +145,246 @@ class _ResultsScreenContentState extends State<_ResultsScreenContent> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.sportType != null ? _getSportTitle(widget.sportType!) : 'Jump Results';
-    final themeColor = widget.sportType != null ? _getSportColor(widget.sportType!) : Colors.blue;
+    return BlocBuilder<LanguageCubit, LanguageState>(
+      builder: (context, languageState) {
+        final title = widget.sportType != null 
+          ? Strings.get(_getSportTitle(widget.sportType!), languageState.languageCode)
+          : Strings.get('jumpCount', languageState.languageCode);
+        final themeColor = widget.sportType != null ? _getSportColor(widget.sportType!) : Colors.blue;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        backgroundColor: themeColor,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => context.read<JumpCubit>().startPolling(),
-            tooltip: 'Refresh',
-          ),
-        ],
-      ),
-      floatingActionButton: BlocBuilder<JumpCubit, JumpState>(
-        builder: (context, state) {
-          if (state.errorMessage != null && state.jumpCount == 0 && !state.isRunning) {
-            return const SizedBox.shrink(); 
-          }
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              FloatingActionButton.extended(
-                onPressed: state.isRunning
-                    ? () {
-                        context.read<JumpCubit>().stopDetection();
-                        // Save the test result
-                        _saveTestResult(state);
-                      }
-                    : () => _showStartDialog(context),
-                backgroundColor: state.isRunning ? Colors.red : Colors.green,
-                icon: Icon(state.isRunning ? Icons.stop : Icons.play_arrow),
-                label: Text(state.isRunning ? 'Stop' : 'Start'),
-              ),
-              const SizedBox(height: 10),
-              FloatingActionButton(
-                onPressed: () => context.read<JumpCubit>().resetData(),
-                backgroundColor: Colors.orange,
-                child: const Icon(Icons.refresh),
-                tooltip: 'Reset',
-              ),
-            ],
-          );
-        },
-      ),
-      body: BlocConsumer<JumpCubit, JumpState>(
-        listener: (context, state) {
-          // You could show snackbars here for specific events if needed
-        },
-        builder: (context, state) {
-          if (state.errorMessage != null && state.jumpCount == 0 && state.statusMessage == 'Waiting to start...') {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: Colors.red,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Connection Error:\n${state.errorMessage}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Ensure server is running at ${ApiService.baseUrl}',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => context.read<JumpCubit>().startPolling(),
-                      child: const Text('Retry'),
-                    ),
-                  ],
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(title),
+            backgroundColor: themeColor,
+            actions: [
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              context.read<JumpCubit>().startPolling();
-              await Future.delayed(const Duration(milliseconds: 500));
-            },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (widget.athleteName != null) ...[
-                      Text(
-                        'Athlete: ${widget.athleteName}',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 10),
-                    ],
-                    _buildStatCard(
-                      'Jump Count',
-                      state.jumpCount.toString(),
-                      Icons.directions_run,
-                      Colors.blue,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStatCard(
-                      'Last Jump Height',
-                      '${state.lastJumpHeight.toStringAsFixed(2)} cm',
-                      Icons.height,
-                      Colors.green,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStatCard(
-                      'Highest Jump',
-                      '${state.maxJumpHeight.toStringAsFixed(2)} cm',
-                      Icons.trending_up,
-                      Colors.orange,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStatusCard(
-                      'Status',
-                      state.statusMessage,
-                      state.isRunning ? Icons.check_circle : Icons.pause_circle,
-                      state.isRunning ? Colors.green : Colors.grey,
-                    ),
-                    const SizedBox(height: 32),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            size: 32,
-                            color: themeColor,
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Data updates every second',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Server: ${ApiService.baseUrl}',
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: languageState.languageCode != 'en'
+                            ? () => context.read<LanguageCubit>().changeLanguage('en')
+                            : null,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          child: Text(
+                            'EN',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              fontWeight: FontWeight.bold,
+                              color: languageState.languageCode == 'en'
+                                  ? Colors.white
+                                  : Colors.white70,
                             ),
                           ),
-                        ],
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 24,
+                      color: Colors.white30,
+                    ),
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: languageState.languageCode != 'hi'
+                            ? () => context.read<LanguageCubit>().changeLanguage('hi')
+                            : null,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          child: Text(
+                            'हि',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: languageState.languageCode == 'hi'
+                                  ? Colors.white
+                                  : Colors.white70,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-          );
-        },
-      ),
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: () => context.read<JumpCubit>().startPolling(),
+                tooltip: Strings.get('refresh', languageState.languageCode),
+              ),
+            ],
+          ),
+          floatingActionButton: BlocBuilder<JumpCubit, JumpState>(
+            builder: (context, state) {
+              if (state.errorMessage != null && state.jumpCount == 0 && !state.isRunning) {
+                return const SizedBox.shrink(); 
+              }
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  FloatingActionButton.extended(
+                    onPressed: state.isRunning
+                        ? () {
+                            context.read<JumpCubit>().stopDetection();
+                            // Save the test result
+                            _saveTestResult(state);
+                          }
+                        : () => _showStartDialog(context),
+                    backgroundColor: state.isRunning ? Colors.red : Colors.green,
+                    icon: Icon(state.isRunning ? Icons.stop : Icons.play_arrow),
+                    label: Text(state.isRunning 
+                      ? Strings.get('stop', languageState.languageCode)
+                      : Strings.get('start', languageState.languageCode)),
+                  ),
+                  const SizedBox(height: 10),
+                  FloatingActionButton(
+                    onPressed: () => context.read<JumpCubit>().resetData(),
+                    backgroundColor: Colors.orange,
+                    child: const Icon(Icons.refresh),
+                    tooltip: Strings.get('reset', languageState.languageCode),
+                  ),
+                ],
+              );
+            },
+          ),
+          body: BlocConsumer<JumpCubit, JumpState>(
+            listener: (context, state) {
+              // You could show snackbars here for specific events if needed
+            },
+            builder: (context, state) {
+              if (state.errorMessage != null && state.jumpCount == 0 && state.statusMessage == Strings.get('waitingToStart', languageState.languageCode)) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          '${Strings.get('connectionError', languageState.languageCode)}:\n${state.errorMessage}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${Strings.get('ensureServerRunning', languageState.languageCode)} ${ApiService.baseUrl}',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () => context.read<JumpCubit>().startPolling(),
+                          child: Text(Strings.get('retry', languageState.languageCode)),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return RefreshIndicator(
+                onRefresh: () async {
+                  context.read<JumpCubit>().startPolling();
+                  await Future.delayed(const Duration(milliseconds: 500));
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (widget.athleteName != null) ...[
+                          Text(
+                            'Athlete: ${widget.athleteName}',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                        _buildStatCard(
+                          Strings.get('jumpCount', languageState.languageCode),
+                          state.jumpCount.toString(),
+                          Icons.directions_run,
+                          Colors.blue,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildStatCard(
+                          Strings.get('lastJumpHeight', languageState.languageCode),
+                          '${state.lastJumpHeight.toStringAsFixed(2)} ${Strings.get('cm', languageState.languageCode)}',
+                          Icons.height,
+                          Colors.green,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildStatCard(
+                          Strings.get('highestJump', languageState.languageCode),
+                          '${state.maxJumpHeight.toStringAsFixed(2)} ${Strings.get('cm', languageState.languageCode)}',
+                          Icons.trending_up,
+                          Colors.orange,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildStatusCard(
+                          Strings.get('status', languageState.languageCode),
+                          state.statusMessage,
+                          state.isRunning ? Icons.check_circle : Icons.pause_circle,
+                          state.isRunning ? Colors.green : Colors.grey,
+                        ),
+                        const SizedBox(height: 32),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                size: 32,
+                                color: themeColor,
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Data updates every second',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Server: ${ApiService.baseUrl}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 

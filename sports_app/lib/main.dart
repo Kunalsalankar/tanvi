@@ -9,8 +9,10 @@ import 'sport_selection_screen.dart';
 import 'admin_screen.dart';
 import 'admin_dashboard_screen.dart';
 import 'auth_screen.dart';
+import 'login_screen.dart';
 import 'user_profile_screen.dart';
 import 'bloc/auth_cubit.dart';
+import 'bloc/language_cubit.dart';
 import 'services/auth_service.dart';
 
 // Type alias for camera - can be dynamic for web support
@@ -49,10 +51,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => AuthCubit(authService: authService),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => AuthCubit(authService: authService)),
+        BlocProvider(create: (context) => LanguageCubit()),
+      ],
       child: MaterialApp(
-      title: ' Sports App',
+        title: 'Sports App',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         primaryColor: Colors.blue.shade600,

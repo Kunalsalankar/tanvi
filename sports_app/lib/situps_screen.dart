@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'api_service.dart';
+import 'strings.dart';
 import 'bloc/situp_cubit.dart';
 import 'bloc/situp_state.dart';
+import 'bloc/language_cubit.dart';
 
 class SitupsScreen extends StatelessWidget {
   final ApiService apiService;
@@ -11,8 +13,12 @@ class SitupsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => SitupCubit(apiService: apiService),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (context) => SitupCubit(apiService: apiService),
+        ),
+      ],
       child: const _SitupsScreenContent(),
     );
   }
@@ -23,279 +29,346 @@ class _SitupsScreenContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.green,
-        title: const Text(
-          'Sit Ups Counter',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              context.read<SitupCubit>().fetchStatus();
-            },
-            tooltip: 'Refresh',
-          ),
-        ],
-      ),
-      body: Container(
-        color: Colors.grey.shade50,
-        child: BlocBuilder<SitupCubit, SitupState>(
-          builder: (context, state) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Header Card
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.green.withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.fitness_center,
-                          color: Colors.white,
-                          size: 50,
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Sit Ups Counter',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          state.statusMessage,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Error Message
-                  if (state.errorMessage != null)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.red.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.error_outline, color: Colors.red.shade700),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              state.errorMessage!,
-                              style: TextStyle(color: Colors.red.shade700),
+    return BlocBuilder<LanguageCubit, LanguageState>(
+      builder: (context, languageState) {
+        return Scaffold(
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: Colors.green,
+            title: Text(
+              Strings.get('sitUps', languageState.languageCode),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+              ),
+            ),
+            actions: [
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: languageState.languageCode != 'en'
+                            ? () => context.read<LanguageCubit>().changeLanguage('en')
+                            : null,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          child: Text(
+                            'EN',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: languageState.languageCode == 'en'
+                                  ? Colors.white
+                                  : Colors.white70,
                             ),
                           ),
-                        ],
+                        ),
                       ),
                     ),
-
-                  // Situp Count Card
-                  _buildStatCard(
-                    'Sit Up Count',
-                    state.situpCount.toString(),
-                    Icons.fitness_center,
-                    Colors.green,
-                    0,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Current Stage Card
-                  _buildStatCard(
-                    'Current Stage',
-                    state.currentStage.toUpperCase(),
-                    state.currentStage == 'down' 
-                        ? Icons.arrow_downward 
-                        : Icons.arrow_upward,
-                    state.currentStage == 'down' ? Colors.orange : Colors.green,
-                    1,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Current Angle Card
-                  _buildStatCard(
-                    'Body Angle',
-                    '${state.currentAngle.toStringAsFixed(1)}°',
-                    Icons.straighten,
-                    Colors.blue,
-                    2,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Status Card
-                  _buildStatusCard(
-                    'Status',
-                    state.statusMessage,
-                    state.isRunning
-                        ? Icons.check_circle
-                        : Icons.pause_circle,
-                    state.isRunning ? Colors.green : Colors.grey,
-                    3,
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Info Card
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.green.shade200,
-                        width: 1,
+                    Container(
+                      width: 1,
+                      height: 24,
+                      color: Colors.white30,
+                    ),
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: languageState.languageCode != 'hi'
+                            ? () => context.read<LanguageCubit>().changeLanguage('hi')
+                            : null,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          child: Text(
+                            'हि',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: languageState.languageCode == 'hi'
+                                  ? Colors.white
+                                  : Colors.white70,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                    child: Column(
-                      children: [
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: () {
+                  context.read<SitupCubit>().fetchStatus();
+                },
+                tooltip: Strings.get('refresh', languageState.languageCode),
+              ),
+            ],
+          ),
+          body: Container(
+            color: Colors.grey.shade50,
+            child: BlocBuilder<SitupCubit, SitupState>(
+              builder: (context, state) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Header Card
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.green.withOpacity(0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.fitness_center,
+                              color: Colors.white,
+                              size: 50,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              Strings.get('sitUps', languageState.languageCode),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              state.statusMessage,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Error Message
+                      if (state.errorMessage != null)
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(16),
+                          margin: const EdgeInsets.only(bottom: 16),
                           decoration: BoxDecoration(
-                            color: Colors.green.shade100,
-                            shape: BoxShape.circle,
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.red.shade300),
                           ),
-                          child: Icon(
-                            Icons.info_outline,
-                            size: 28,
-                            color: Colors.green.shade700,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Live Data Updates',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'The counter updates in real-time as you perform sit-ups. Ensure your hands are behind your head and maintain proper form.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade600,
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Action Buttons
-                  if (!state.isRunning)
-                    ElevatedButton.icon(
-                      onPressed: state.isLoading
-                          ? null
-                          : () {
-                              context.read<SitupCubit>().startDetection();
-                            },
-                      icon: state.isLoading
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.green.shade700,
+                          child: Row(
+                            children: [
+                              Icon(Icons.error_outline, color: Colors.red.shade700),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  state.errorMessage!,
+                                  style: TextStyle(color: Colors.red.shade700),
                                 ),
                               ),
-                            )
-                          : const Icon(Icons.play_arrow),
-                      label: Text(
-                        state.isLoading ? 'Starting...' : 'Start Detection',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    )
-                  else
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              context.read<SitupCubit>().stopDetection();
-                            },
-                            icon: const Icon(Icons.stop),
-                            label: const Text('Stop'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              context.read<SitupCubit>().resetCounter();
-                            },
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Reset'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+
+                      // Situp Count Card
+                      _buildStatCard(
+                        Strings.get('situpCount', languageState.languageCode),
+                        state.situpCount.toString(),
+                        Icons.fitness_center,
+                        Colors.green,
+                        0,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Current Stage Card
+                      _buildStatCard(
+                        Strings.get('currentStage', languageState.languageCode),
+                        state.currentStage == 'down' 
+                            ? Strings.get('down', languageState.languageCode)
+                            : Strings.get('up', languageState.languageCode),
+                        state.currentStage == 'down' 
+                            ? Icons.arrow_downward 
+                            : Icons.arrow_upward,
+                        state.currentStage == 'down' ? Colors.orange : Colors.green,
+                        1,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Current Angle Card
+                      _buildStatCard(
+                        Strings.get('bodyAngle', languageState.languageCode),
+                        '${state.currentAngle.toStringAsFixed(1)}${Strings.get('degrees', languageState.languageCode)}',
+                        Icons.straighten,
+                        Colors.blue,
+                        2,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Status Card
+                      _buildStatusCard(
+                        Strings.get('statusMessage', languageState.languageCode),
+                        state.statusMessage,
+                        state.isRunning
+                            ? Icons.check_circle
+                            : Icons.pause_circle,
+                        state.isRunning ? Colors.green : Colors.grey,
+                        3,
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Info Card
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.green.shade200,
+                            width: 1,
                           ),
                         ),
-                      ],
-                    ),
-                ],
-              ),
-            );
-          },
-        ),
-      ),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade100,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.info_outline,
+                                size: 28,
+                                color: Colors.green.shade700,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Live Data Updates',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'The counter updates in real-time as you perform sit-ups. Ensure your hands are behind your head and maintain proper form.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade600,
+                                height: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Action Buttons
+                      if (!state.isRunning)
+                        ElevatedButton.icon(
+                          onPressed: state.isLoading
+                              ? null
+                              : () {
+                                  context.read<SitupCubit>().startDetection();
+                                },
+                          icon: state.isLoading
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.green.shade700,
+                                    ),
+                                  ),
+                                )
+                              : const Icon(Icons.play_arrow),
+                          label: Text(
+                            state.isLoading 
+                              ? Strings.get('startDetection', languageState.languageCode)
+                              : Strings.get('startDetection', languageState.languageCode),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        )
+                      else
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  context.read<SitupCubit>().stopDetection();
+                                },
+                                icon: const Icon(Icons.stop),
+                                label: Text(Strings.get('stop', languageState.languageCode)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  context.read<SitupCubit>().resetCounter();
+                                },
+                                icon: const Icon(Icons.refresh),
+                                label: Text(Strings.get('reset', languageState.languageCode)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 

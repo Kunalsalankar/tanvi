@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'api_service.dart';
 import 'sport_info_screen.dart';
+import 'strings.dart';
+import 'bloc/language_cubit.dart';
 
 
 class SportSelectionScreen extends StatefulWidget {
@@ -58,91 +61,158 @@ class _SportSelectionScreenState extends State<SportSelectionScreen>
       _SportItem('Squat', Icons.accessibility_new, Colors.teal, () => _openSportInfo(SportType.squat)),
     ];
 
-    return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.blue,
-        title: const Text(
-          'Select Sport',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-          ),
-        ),
-      ),
-      body: Container(
-        color: Colors.grey.shade50,
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+    return BlocBuilder<LanguageCubit, LanguageState>(
+      builder: (context, languageState) {
+        final lang = languageState.languageCode;
+
+        return Scaffold(
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: Colors.blue,
+            title: Text(
+              Strings.get('selectSport', lang),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+              ),
+            ),
+            actions: [
               Container(
-                margin: const EdgeInsets.all(20),
-                padding: const EdgeInsets.all(20),
+                margin: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.blue,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.blue.withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.sports,
-                        color: Colors.white,
-                        size: 32,
+                    GestureDetector(
+                      onTap: () => context.read<LanguageCubit>().changeLanguage('en'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: lang == 'en' ? Colors.white : Colors.transparent,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'EN',
+                          style: TextStyle(
+                            color: lang == 'en' ? Colors.blue : Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    const Expanded(
-                      child: Text(
-                        'Choose a sport to proceed',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
+                    GestureDetector(
+                      onTap: () => context.read<LanguageCubit>().changeLanguage('hi'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: lang == 'hi' ? Colors.white : Colors.transparent,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'हि',
+                          style: TextStyle(
+                            color: lang == 'hi' ? Colors.blue : Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              Expanded(
-                child: GridView.count(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.85,
-                  children: items.asMap().entries.map((entry) {
-                    return _SportCard(
-                      title: entry.value.title,
-                      icon: entry.value.icon,
-                      color: entry.value.color,
-                      onTap: entry.value.onTap,
-                      index: entry.key,
-                    );
-                  }).toList(),
-                ),
-              ),
+              const SizedBox(width: 8),
             ],
           ),
-        ),
-      ),
+          body: Container(
+            color: Colors.grey.shade50,
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.sports,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            Strings.get('chooseASportToProceed', lang),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: GridView.count(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.85,
+                      children: items.asMap().entries.map((entry) {
+                        return _SportCard(
+                          title: _getSportTitle(entry.value.title, lang),
+                          icon: entry.value.icon,
+                          color: entry.value.color,
+                          onTap: entry.value.onTap,
+                          index: entry.key,
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
+  }
+
+  String _getSportTitle(String title, String lang) {
+    final titleMap = {
+      'Standing Broad Jump': 'standingBroadJump',
+      'Vertical Jump': 'verticalJump',
+      'Sit Ups': 'sitUps',
+      'Squat': 'squat',
+    };
+    return Strings.get(titleMap[title] ?? title, lang);
   }
 }
 
