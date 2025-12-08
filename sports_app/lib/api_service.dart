@@ -9,6 +9,7 @@ class ApiService {
   // For iOS simulator: use http://localhost:5001
   static const String baseUrl = 'http://localhost:5001';  // Jump detection (app1.py)
   static const String squatBaseUrl = 'http://localhost:5002';  // Squat detection (squat_app.py)
+  static const String situpsBaseUrl = 'http://localhost:5003';  // Sit-ups detection (situps_app.py)
 
   // Check if running on web
   static bool get isWeb => kIsWeb;
@@ -201,6 +202,96 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$squatBaseUrl/squat/reset'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Connection timeout: Server did not respond in time');
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Sit-ups detection endpoints (using port 5003 for situps_app.py)
+  Future<Map<String, dynamic>> getSitupStatus() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$situpsBaseUrl/situp/status'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Connection timeout: Server did not respond in time');
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to load situp status: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching situp status: $e');
+    }
+  }
+
+  Future<bool> startSitupDetection({double height = 170.0, double weight = 70.0}) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$situpsBaseUrl/situp/start'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'height': height, 'weight': weight}),
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Connection timeout: Server did not respond in time');
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> stopSitupDetection() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$situpsBaseUrl/situp/stop'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Connection timeout: Server did not respond in time');
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> resetSitupCounter() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$situpsBaseUrl/situp/reset'),
         headers: {'Content-Type': 'application/json'},
       ).timeout(
         const Duration(seconds: 10),

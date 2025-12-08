@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'api_service.dart';
 import 'results_screen.dart';
 import 'squat_screen.dart';
+import 'situps_screen.dart';
 import 'bloc/auth_cubit.dart';
 import 'bloc/auth_state.dart';
 
@@ -171,6 +172,16 @@ class _SportInfoScreenState extends State<SportInfoScreen> {
         context,
         MaterialPageRoute(
           builder: (context) => SquatScreen(
+            apiService: widget.apiService,
+          ),
+        ),
+      );
+    } else if (widget.sportType == SportType.sitUps) {
+      // Navigate to sit-ups screen for sit-ups sport
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SitupsScreen(
             apiService: widget.apiService,
           ),
         ),
